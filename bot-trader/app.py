@@ -99,28 +99,32 @@ def breakingSwingLow(data):
                 print("last_sh ", last_sl)
                 print("row ", row)
 
-def handSecuense(array):
-    lenght = len(array_ss)
-    if(lenght > 1 and array_ss[lenght - 1][0] == "sl" and array_ss[lenght - 2][0] == "sh" ):
+def handSecuenseShSl(array):
+    lenght = len(array)
+    if(lenght > 1 and array[lenght - 1][0] == "sl" and array[lenght - 2][0] == "sh" ):
         print("Esperar rompimiento del sh")
         print("array_ss: ",array_ss)
         return True
     return False
 
+def handSecuenseSlSh(array):
+    lenght = len(array)
+    if(lenght > 1 and array[lenght - 1][0] == "sh" and array[lenght - 2][0] == "sl" ):
+        print("Esperar rompimiento del sl")
+        print("array_ss: ",array_ss)
+        return True
+    return False
 def run():
     # loop principal. ejecucuión continua del script
-    flag = True
-    #i_candle = 0
     while ( True ):
         candle = getData(SYMBOL,TIMEFRAME)
         flag_candle_array = setCandleArray(candle)
-        if ( flag_candle_array ):
-            #print("len(candles_array) ",len(candles_array))
-            if(len(candles_array) == 3):
+        if ( flag_candle_array ):# control de nueva vela en el arreglo de 3
+            if(len(candles_array) == 3):# control de 3 velas en el arreglo
                 candle_sh, flag_sh = getSwingHigh(candles_array)
                 candle_sl, flag_sl = getSwingLow(candles_array)
                 if(flag_sh):
-                    array_sh.append(candle_sh)
+                    
                     aux_list = list(candle_sh)
                     aux_candle = ["sh"]
 
@@ -129,12 +133,8 @@ def run():
                     tup_candle = tuple(aux_candle)
                     array_ss.append(tup_candle)
 
-                    # print("array_sh: ", array_sh)
-                    # print("array_ss: ", array_ss)
-                    # break
-                    # breakingSwingHigh(array_sh)
                 if(flag_sl):
-                    array_sl.append(candle_sl)
+                    
                     aux_list = list(candle_sl)
                     aux_candle = ["sl"]
 
@@ -143,19 +143,13 @@ def run():
                     tup_candle = tuple(aux_candle)
                     array_ss.append(tup_candle)
 
-                    # print("array_sl: ", array_sl)
-                    # print("array_ss: ", array_ss)
-                    # break
-                    # breakingSwingLow(array_sl)
                 candles_array.pop(0)
-        flag_secuense = handSecuense(array_ss)
-        if(flag_secuense):
+        flag_secuense_Sh = handSecuenseShSl(array_ss)
+        flag_secuense_Sl = handSecuenseSlSh(array_ss)
+        if(flag_secuense_Sh):
             break
-        # if(sh_flag):            
-        #     break
-        #time.sleep(0.5)
-        #clear()
-    pass
+        if(flag_secuense_Sl):
+            break
 
 if __name__ == "__main__":
     ##############################################
@@ -167,7 +161,6 @@ if __name__ == "__main__":
     #DEVIATION = 20
     ##############################################
     
-
     ##############################################
     ############ CREDENCIALES LOGING #############
     ##############################################
@@ -176,15 +169,6 @@ if __name__ == "__main__":
     PSWD = "Eo01201992"
     SERVER = "RoboForex-Pro"
     mt5.login(USER,PSWD,SERVER)
-    ##############################################
-    
-    
+    ##############################################   
     run()
-
-    print("candles_array")
-    print(candles_array)
-    print("array_sh")
-    print(array_sh)
-    print("array_sl")
-    print(array_sl)
     mt5.shutdown()
