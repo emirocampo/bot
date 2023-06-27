@@ -76,42 +76,35 @@ def getSwingLow(data):
     else:
         return (), False
 
-def breakingSwingHigh(data):
-    #print("dentro breakingSwingHigh")
-    last_sh=data[len(data)-1]
-    #print("last_sh ",last_sh)
-    #print("tamaño data ", len(data) )
-    if( len(data)>= 2 ):
-        for row in data:
-            #print("row[2]", row[2])
-            #print("last_sh[4]", last_sh[4])
-            if( row[2] < last_sh[4] and row[2] > last_sh[1]):
-                print("################# Rompio con cuerpo SH #################")
-                print("last_sh ", last_sh)
-                print("row ", row)
+def breakingSwingHigh(candle):
+    lenght = len(array_ss)
+    if(array_ss[lenght-2][3]<candle[4]):
+        print("rompió con cuerpo en el sh")
+        print(f"{array_ss[lenght-2]} < {candle}")
+        return True
+    return False
 
-def breakingSwingLow(data):
-    last_sl = data[len(data)-1]
-    if(len(data)>=2):
-        for row in data:
-            if(row[3] > last_sl[4] and row[3] < last_sl[1]):
-                print("################# Rompio con cuerpo SL #################")
-                print("last_sh ", last_sl)
-                print("row ", row)
+def breakingSwingLow(candle):
+    lenght = len(array_ss)
+    if(array_ss[lenght-2][4]> candle[4]):
+        print("rompió con cuerpo en el sl")
+        print(f"{array_ss[lenght-2]} > {candle}")
+        return True
+    return False
 
 def handSecuenseShSl(array):
     lenght = len(array)
     if(lenght > 1 and array[lenght - 1][0] == "sl" and array[lenght - 2][0] == "sh" ):
-        print("Esperar rompimiento del sh")
-        print("array_ss: ",array_ss)
+        # print("Esperar rompimiento del sh")
+        # print("array_ss: ",array_ss)
         return True
     return False
 
 def handSecuenseSlSh(array):
     lenght = len(array)
     if(lenght > 1 and array[lenght - 1][0] == "sh" and array[lenght - 2][0] == "sl" ):
-        print("Esperar rompimiento del sl")
-        print("array_ss: ",array_ss)
+        # print("Esperar rompimiento del sl")
+        # print("array_ss: ",array_ss)
         return True
     return False
 def run():
@@ -147,15 +140,20 @@ def run():
         flag_secuense_Sh = handSecuenseShSl(array_ss)
         flag_secuense_Sl = handSecuenseSlSh(array_ss)
         if(flag_secuense_Sh):
-            break
+            lenght = len(candles_array)
+            flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
+            if(flag_bsh):
+                break
         if(flag_secuense_Sl):
-            break
+            flag_bsl=breakingSwingLow(candles_array[lenght - 1])
+            if(flag_bsl):
+                break
 
 if __name__ == "__main__":
     ##############################################
     ######## PARAMETROS DE LA ESTRATEGIA #########
     ##############################################
-    SYMBOL = "EURUSD"
+    SYMBOL = "AUDCAD"
     VOLUME = 1.0
     TIMEFRAME = mt5.TIMEFRAME_M1
     #DEVIATION = 20
