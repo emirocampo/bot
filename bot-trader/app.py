@@ -107,6 +107,51 @@ def handSecuenseSlSh(array):
         # print("array_ss: ",array_ss)
         return True
     return False
+
+def handWaitForBreak():
+    print("Esperando sh o sl o rompimiento")
+    # flag = True
+    while(True):
+        candle = getData(SYMBOL,TIMEFRAME)
+        flag_candle_array = setCandleArray(candle)
+        if ( flag_candle_array ):# control de nueva vela en el arreglo de 3
+            if(len(candles_array) == 3):# control de 3 velas en el arreglo
+                candle_sh, flag_sh = getSwingHigh(candles_array)
+                candle_sl, flag_sl = getSwingLow(candles_array)
+                if(flag_sh):
+                    
+                    aux_list = list(candle_sh)
+                    aux_candle = ["sh"]
+
+                    for e in aux_list:
+                        aux_candle.append(e)
+                    tup_candle = tuple(aux_candle)
+                    array_ss.append(tup_candle)
+
+                if(flag_sl):
+                    
+                    aux_list = list(candle_sl)
+                    aux_candle = ["sl"]
+
+                    for e in aux_list:
+                        aux_candle.append(e)
+                    tup_candle = tuple(aux_candle)
+                    array_ss.append(tup_candle)
+
+                
+                lenght = len(candles_array)
+                flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
+                flag_bsl = breakingSwingLow(candles_array[lenght - 1])
+                if(flag_bsh or flag_bsl):
+                    candles_array.pop(0)
+                    break
+                if(flag_sh or flag_sl):
+                    candles_array.pop(0)
+                    break
+                candles_array.pop(0) #OJO!!! CONTROLAR ESTO!!!
+
+        pass
+    return True
 def run():
     # loop principal. ejecucuión continua del script
     while ( True ):
@@ -140,14 +185,26 @@ def run():
         flag_secuense_Sh = handSecuenseShSl(array_ss)
         flag_secuense_Sl = handSecuenseSlSh(array_ss)
         if(flag_secuense_Sh):
-            lenght = len(candles_array)
-            flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
-            if(flag_bsh):
+            # lenght = len(candles_array)
+            # flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
+            # if(flag_bsh):
+            #     break
+            flag_hwfb = handWaitForBreak()
+            if(flag_hwfb):
+                print("o rompio o nuevos sh sl")
                 break
+
+            pass
         if(flag_secuense_Sl):
-            flag_bsl=breakingSwingLow(candles_array[lenght - 1])
-            if(flag_bsl):
+            # lenght = len(candles_array)
+            # flag_bsl=breakingSwingLow(candles_array[lenght - 1])
+            # if(flag_bsl):
+            #     break
+            flag_hwfb = handWaitForBreak()
+            if(flag_hwfb):
+                print("o rompio o nuevos sh sl")
                 break
+            pass
 
 if __name__ == "__main__":
     ##############################################
