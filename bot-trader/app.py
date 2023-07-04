@@ -108,10 +108,74 @@ def handSecuenseSlSh(array):
         return True
     return False
 
-def handWaitForBreak():
+def findSwingLow(array):
+    flag_r = False
+    for e in reversed(array):
+        if(e[0]=="sl"):
+            flag_r = True
+            return e
+        if(flag_r):
+            break
+        pass
+    pass
+
+def findSwingHigh(array):
+    flag_r = False
+    for e in reversed(array):
+        if(e[0]=="sh"):
+            flag_r = True
+            return e
+        if(flag_r):
+            break
+        pass
+    pass
+
+def requestOrderSendBuy(high,low, take_p):
+    lot = 0.01
+    # point = mt5.symbol_info(symbol).point
+    # price = mt5.symbol_info_tick(SYMBOL).ask
+    deviation = 20
+    request = {
+        "action": mt5.TRADE_ACTION_PENDING,
+        "symbol": SYMBOL,
+        "volume": lot,
+        "type": mt5.ORDER_TYPE_BUY_LIMIT,
+        "price": high,
+        "sl": low,
+        "tp": take_p,
+        "deviation": deviation,
+        "magic": 1234,
+        "comment": "python script open",
+        "type_time": mt5.ORDER_TIME_DAY,
+        "type_filling": mt5.ORDER_FILLING_RETURN,
+    }
+    return request
+
+def requestOrderSendSell(high,low, take_p):
+    lot = 0.01
+    # point = mt5.symbol_info(symbol).point
+    # price = mt5.symbol_info_tick(SYMBOL).ask
+    deviation = 20
+    request = {
+        "action": mt5.TRADE_ACTION_PENDING,
+        "symbol": SYMBOL,
+        "volume": lot,
+        "type": mt5.ORDER_TYPE_SELL_LIMIT,
+        "price": low,
+        "sl": high,
+        "tp": take_p,
+        "deviation": deviation,
+        "magic": 1234,
+        "comment": "python script open",
+        "type_time": mt5.ORDER_TIME_DAY,
+        "type_filling": mt5.ORDER_FILLING_RETURN,
+    }
+    return request
+
+def handWaitForBreak(ss1,ss2):
     print("Esperando sh o sl o rompimiento")
-    # flag = True
-    while(True):
+    flag = True
+    while(flag):
         candle = getData(SYMBOL,TIMEFRAME)
         flag_candle_array = setCandleArray(candle)
         if ( flag_candle_array ):# control de nueva vela en el arreglo de 3
@@ -142,12 +206,35 @@ def handWaitForBreak():
                 lenght = len(candles_array)
                 flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
                 flag_bsl = breakingSwingLow(candles_array[lenght - 1])
-                if(flag_bsh or flag_bsl):
+                if(flag_bsh and ss1=="sh" and ss2=="sl"):
+                    print("envió orden compra")
+                    candle_sl_nerby=findSwingLow(array_ss)
+                    candle_high = candle_sl_nerby[3]
+                    candle_low = candle_sl_nerby[4]
+                    take_profit = candle_high + (candle_high - candle_low)*2
+                    request = requestOrderSendBuy(candle_high,candle_low, take_profit)
+                    result = mt5.order_send(request)
+                    print(result)
+
                     candles_array.pop(0)
-                    break
+                    flag = False
+                if(flag_bsl and ss1=="sl" and ss2=="sh"):
+                    print("envió orden venta")
+                    candle_sh_nerby=findSwingHigh(array_ss)
+                    candle_high = candle_sh_nerby[3]
+                    candle_low = candle_sh_nerby[4]
+                    take_profit = candle_low - (candle_high - candle_low)*2
+                    request = requestOrderSendSell(candle_high,candle_low, take_profit)
+                    result = mt5.order_send(request)
+                    print(result)
+
+                    candles_array.pop(0)
+                    flag = False
                 if(flag_sh or flag_sl):
+                    print("hubo un cambio en los swings")
                     candles_array.pop(0)
-                    break
+                    # break
+                    flag = False
                 candles_array.pop(0) #OJO!!! CONTROLAR ESTO!!!
 
         pass
@@ -189,7 +276,7 @@ def run():
             # flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
             # if(flag_bsh):
             #     break
-            flag_hwfb = handWaitForBreak()
+            flag_hwfb = handWaitForBreak("sh","sl")
             if(flag_hwfb):
                 print("o rompio o nuevos sh sl")
                 break
@@ -200,7 +287,7 @@ def run():
             # flag_bsl=breakingSwingLow(candles_array[lenght - 1])
             # if(flag_bsl):
             #     break
-            flag_hwfb = handWaitForBreak()
+            flag_hwfb = handWaitForBreak("sl","sh")
             if(flag_hwfb):
                 print("o rompio o nuevos sh sl")
                 break
@@ -210,7 +297,7 @@ if __name__ == "__main__":
     ##############################################
     ######## PARAMETROS DE LA ESTRATEGIA #########
     ##############################################
-    SYMBOL = "AUDCAD"
+    SYMBOL = "BCHUSD"
     VOLUME = 1.0
     TIMEFRAME = mt5.TIMEFRAME_M1
     #DEVIATION = 20
