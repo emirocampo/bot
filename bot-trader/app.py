@@ -6,17 +6,7 @@ import os
 
 
 
-##############################################
-############# VARIABLES GLOBALES #############
-##############################################
 
-array_sh = []
-array_sl = []
-array_ss = []
-comparison_candles_array = []
-candles_array = []
-
-##############################################
 def clear():
     if os.name == "nt":
         os.system("cls")
@@ -32,10 +22,10 @@ def getData(symbol, timeframe):
     # 3 2020-02-18  1.30039  1.30486  1.29705  1.29952        62288       0            0
     
     data = mt5.copy_rates_from_pos(symbol, timeframe, 0, 1)#ultima barra
-    #print(data[0][0])
+    # print(data[0])
     return data[0]
 
-def setCandleArray(data):
+def setCandlesArray(data, comparison_candles_array,candles_array):
     if( len(comparison_candles_array) <= 1 ):
             comparison_candles_array.append(data)
             
@@ -47,11 +37,14 @@ def setCandleArray(data):
         
         if( now - last == 60 ):
             candles_array.append(comparison_candles_array[0])
-            return True
+            print("candles_array")
+            for e in candles_array:
+                print(e)
+            return True,comparison_candles_array,candles_array
         
-        return False
+        return False,comparison_candles_array,candles_array
     
-    return False
+    return False,comparison_candles_array,candles_array
 
 def getSwingHigh(data):
     if( len(data)==3 ):
@@ -59,65 +52,90 @@ def getSwingHigh(data):
             print("SIWNG HIGH!!!")
             print(datetime.datetime.fromtimestamp(data[1][0]))
             print(data[1])
-            # array_sh.append(data[1])
-            # candles_array.pop(0)
-            return data[1],True
+            return data[1],True,False
+        elif( data[1][2] == data[2][2]):
+            return (), False, True
         else:
-            return (), False
-        
+            return (), False, False
+    if( len(data)==4 ):
+        if(data[1][2] > data[0][2] and data[2][2] > data[3][2]):
+            print("SIWNG HIGH!!!")
+            print(datetime.datetime.fromtimestamp(data[1][0]))
+            data.pop(0)
+            print(data[1])
+            return data[1],True,False
+        elif(data[2][2] == data[3][2]):
+            return (), False, True
+        else:
+            return (), False, False
+    if(len(data) == 5):
+        if(data[1][2] > data[0][2] and data[3][2] > data[4][2]):
+            print("SIWNG HIGH!!!")
+            print(datetime.datetime.fromtimestamp(data[1][0]))
+            data.pop(0)
+            data.pop(0)
+            print(data[1])
+            return data[1],True,False
+        else:
+            return (), False, False
+
 def getSwingLow(data):
-    if(data[1][3] < data[0][3] and data[1][3] < data[2][3]):
-        print("SIWNG LOW!!!")
-        print(datetime.datetime.fromtimestamp(data[1][0]))
-        print(data[1])
-        # array_sl.append(data[1])
-        # candles_array.pop(0)
-        return data[1],True
-    else:
-        return (), False
+    if(len(data)==3):
+        if(data[1][3] < data[0][3] and data[1][3] < data[2][3]):
+            print("SIWNG LOW!!!")
+            print(datetime.datetime.fromtimestamp(data[1][0]))
+            print(data[1])
+            return data[1],True, False
+        elif((data[1][3] == data[2][3]) and (data[1][3] < data[0][3])):
+            return (), False, True
+        else:
+            return (), False, False
+    if( len(data)==4 ):
+        if(data[1][3] < data[0][3] and data[2][3] < data[3][3]):
+            print("SIWNG LOW!!!")
+            data.pop(0)
+            print(data[1])
+            return data[1],True,False
+        elif(data[2][4] == data[3][4]):
+            return (), False, True
+        else:
+            data.pop(0)
+            return (), False, False
+    if( len(data)==5 ):
+        if(data[1][3] < data[0][3] and data[3][3] < data[4][3]):
+            print("SIWNG LOW!!!")
+            data.pop(0)
+            data.pop(0)
+            print(data[1])
+            return data[1],True,False
+        else:
+            data.pop(0)
+            data.pop(0)
+            return (), False, False
 
-def breakingSwingHigh(candle):
-    lenght = len(array_ss)
-    if(array_ss[lenght-2][3]<candle[4]):
-        print("rompió con cuerpo en el sh")
-        print(f"{array_ss[lenght-2]} < {candle}")
-        return True
-    return False
-
-def breakingSwingLow(candle):
-    lenght = len(array_ss)
-    if(array_ss[lenght-2][4]> candle[4]):
-        print("rompió con cuerpo en el sl")
-        print(f"{array_ss[lenght-2]} > {candle}")
-        return True
-    return False
+def handSetArraySS(marker,candle,array):
+    aux_candle = [marker]
+    aux_candle.extend(candle)
+    array.append(aux_candle)
+    return array
 
 def handSecuenseShSl(array):
     lenght = len(array)
-    if(lenght > 1 and array[lenght - 1][0] == "sl" and array[lenght - 2][0] == "sh" ):
-        # print("Esperar rompimiento del sh")
-        # print("array_ss: ",array_ss)
-        return True
-    return False
+    if(lenght > 1 and array[lenght - 2][0] == "sh" and array[lenght - 1][0] == "sl"  ):
+        print("secuencia sh - sl encontrada")
+        sl=array[lenght - 1]
+        sh=array[lenght - 2]
+        return (True,sl,sh)
+    return (False,[],[])
 
 def handSecuenseSlSh(array):
     lenght = len(array)
-    if(lenght > 1 and array[lenght - 1][0] == "sh" and array[lenght - 2][0] == "sl" ):
-        # print("Esperar rompimiento del sl")
-        # print("array_ss: ",array_ss)
-        return True
-    return False
-
-def findSwingLow(array):
-    flag_r = False
-    for e in reversed(array):
-        if(e[0]=="sl"):
-            flag_r = True
-            return e
-        if(flag_r):
-            break
-        pass
-    pass
+    if(lenght > 1 and array[lenght - 2][0] == "sl"  and array[lenght - 1][0] == "sh" ):
+        print("secuencia sl - sh encontrada")
+        sl=array[lenght - 2]
+        sh=array[lenght - 1]
+        return (True,sl,sh)
+    return (False,[],[])
 
 def findSwingHigh(array):
     flag_r = False
@@ -130,7 +148,18 @@ def findSwingHigh(array):
         pass
     pass
 
-def requestOrderSendBuy(high,low, take_p):
+def findSwingLow(array):
+    flag_r = False
+    for e in reversed(array):
+        if(e[0]=="sl"):
+            flag_r = True
+            return e
+        if(flag_r):
+            break
+        pass
+    pass
+
+def requestOrderSendBuy(high,low, take_p, SYMBOL):
     lot = 0.01
     # point = mt5.symbol_info(symbol).point
     # price = mt5.symbol_info_tick(SYMBOL).ask
@@ -151,7 +180,7 @@ def requestOrderSendBuy(high,low, take_p):
     }
     return request
 
-def requestOrderSendSell(high,low, take_p):
+def requestOrderSendSell(high,low, take_p, SYMBOL):
     lot = 0.01
     # point = mt5.symbol_info(symbol).point
     # price = mt5.symbol_info_tick(SYMBOL).ask
@@ -172,132 +201,24 @@ def requestOrderSendSell(high,low, take_p):
     }
     return request
 
-def handWaitForBreak(ss1,ss2):
-    print("Esperando sh o sl o rompimiento")
-    flag = True
-    while(flag):
-        candle = getData(SYMBOL,TIMEFRAME)
-        flag_candle_array = setCandleArray(candle)
-        if ( flag_candle_array ):# control de nueva vela en el arreglo de 3
-            if(len(candles_array) == 3):# control de 3 velas en el arreglo
-                candle_sh, flag_sh = getSwingHigh(candles_array)
-                candle_sl, flag_sl = getSwingLow(candles_array)
-                if(flag_sh):
-                    
-                    aux_list = list(candle_sh)
-                    aux_candle = ["sh"]
 
-                    for e in aux_list:
-                        aux_candle.append(e)
-                    tup_candle = tuple(aux_candle)
-                    array_ss.append(tup_candle)
-
-                if(flag_sl):
-                    
-                    aux_list = list(candle_sl)
-                    aux_candle = ["sl"]
-
-                    for e in aux_list:
-                        aux_candle.append(e)
-                    tup_candle = tuple(aux_candle)
-                    array_ss.append(tup_candle)
-
-                
-                lenght = len(candles_array)
-                flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
-                flag_bsl = breakingSwingLow(candles_array[lenght - 1])
-                if(flag_bsh and ss1=="sh" and ss2=="sl"):
-                    print("envió orden compra")
-                    candle_sl_nerby=findSwingLow(array_ss)
-                    candle_high = candle_sl_nerby[3]
-                    candle_low = candle_sl_nerby[4]
-                    take_profit = candle_high + (candle_high - candle_low)*2
-                    request = requestOrderSendBuy(candle_high,candle_low, take_profit)
-                    result = mt5.order_send(request)
-                    print(result)
-
-                    candles_array.pop(0)
-                    flag = False
-                if(flag_bsl and ss1=="sl" and ss2=="sh"):
-                    print("envió orden venta")
-                    candle_sh_nerby=findSwingHigh(array_ss)
-                    candle_high = candle_sh_nerby[3]
-                    candle_low = candle_sh_nerby[4]
-                    take_profit = candle_low - (candle_high - candle_low)*2
-                    request = requestOrderSendSell(candle_high,candle_low, take_profit)
-                    result = mt5.order_send(request)
-                    print(result)
-
-                    candles_array.pop(0)
-                    flag = False
-                if(flag_sh or flag_sl):
-                    print("hubo un cambio en los swings")
-                    candles_array.pop(0)
-                    # break
-                    flag = False
-                candles_array.pop(0) #OJO!!! CONTROLAR ESTO!!!
-
-        pass
-    return True
 def run():
-    # loop principal. ejecucuión continua del script
-    while ( True ):
-        candle = getData(SYMBOL,TIMEFRAME)
-        flag_candle_array = setCandleArray(candle)
-        if ( flag_candle_array ):# control de nueva vela en el arreglo de 3
-            if(len(candles_array) == 3):# control de 3 velas en el arreglo
-                candle_sh, flag_sh = getSwingHigh(candles_array)
-                candle_sl, flag_sl = getSwingLow(candles_array)
-                if(flag_sh):
-                    
-                    aux_list = list(candle_sh)
-                    aux_candle = ["sh"]
+    ##############################################
+    ############# VARIABLES GLOBALES #############
+    ##############################################
 
-                    for e in aux_list:
-                        aux_candle.append(e)
-                    tup_candle = tuple(aux_candle)
-                    array_ss.append(tup_candle)
+    candles_array = []
+    array_ss = []
+    comparison_candles_array = []
+    flag_secuense_Sh = True 
+    array_pair=[]
+    first_break=[[False,"0","0","ss"]]
+    
 
-                if(flag_sl):
-                    
-                    aux_list = list(candle_sl)
-                    aux_candle = ["sl"]
-
-                    for e in aux_list:
-                        aux_candle.append(e)
-                    tup_candle = tuple(aux_candle)
-                    array_ss.append(tup_candle)
-
-                candles_array.pop(0)
-        flag_secuense_Sh = handSecuenseShSl(array_ss)
-        flag_secuense_Sl = handSecuenseSlSh(array_ss)
-        if(flag_secuense_Sh):
-            # lenght = len(candles_array)
-            # flag_bsh = breakingSwingHigh(candles_array[lenght - 1])
-            # if(flag_bsh):
-            #     break
-            flag_hwfb = handWaitForBreak("sh","sl")
-            if(flag_hwfb):
-                print("o rompio o nuevos sh sl")
-                break
-
-            pass
-        if(flag_secuense_Sl):
-            # lenght = len(candles_array)
-            # flag_bsl=breakingSwingLow(candles_array[lenght - 1])
-            # if(flag_bsl):
-            #     break
-            flag_hwfb = handWaitForBreak("sl","sh")
-            if(flag_hwfb):
-                print("o rompio o nuevos sh sl")
-                break
-            pass
-
-if __name__ == "__main__":
     ##############################################
     ######## PARAMETROS DE LA ESTRATEGIA #########
     ##############################################
-    SYMBOL = "BCHUSD"
+    SYMBOL = "EURUSD"
     VOLUME = 1.0
     TIMEFRAME = mt5.TIMEFRAME_M1
     #DEVIATION = 20
@@ -311,6 +232,118 @@ if __name__ == "__main__":
     PSWD = "Eo01201992"
     SERVER = "RoboForex-Pro"
     mt5.login(USER,PSWD,SERVER)
-    ##############################################   
+    ##############################################  
+
+    ##############################################
+    # loop principal. ejecucuión continua del script
+    while ( True ):
+        candle = getData(SYMBOL,TIMEFRAME)
+        flag_candles_array,comparison_candles_array, candles_array = setCandlesArray(candle,comparison_candles_array,candles_array)
+        if ( flag_candles_array and ( len(candles_array) == 3 or len(candles_array) == 4) or len(candles_array) == 5 ):
+            candle_sh, flag_sh, flag_sh_2 = getSwingHigh(candles_array)
+            candle_sl, flag_sl, flag_sl_2 = getSwingLow(candles_array)
+            if(flag_sh):
+                array_ss = handSetArraySS("sh",candle_sh,array_ss)
+            if(flag_sl):
+                array_ss = handSetArraySS("sl",candle_sl,array_ss)
+            (flag_secuense_Sh, sl, sh) = handSecuenseShSl(array_ss)
+            if(flag_secuense_Sh):
+                aux = [sh,sl,["high"]]
+                if len(array_pair) != 0:
+                    tamano = len(array_pair)
+                    if( not (array_pair[tamano - 1] [0] == sh and array_pair[tamano - 1] [1] == sl) ):
+                        array_pair.append(aux)
+                else:
+                    array_pair.append(aux)
+            (flag_secuense_Sl, sl, sh) = handSecuenseSlSh(array_ss)
+            if(flag_secuense_Sl):
+                aux = [sl,sh,["low"]]
+                if len(array_pair) != 0:
+                    tamano = len(array_pair)
+                    if( not (array_pair[tamano -1] [0] == sl and array_pair[tamano - 1] [1] == sh) ):
+                        array_pair.append(aux)
+                else:
+                    array_pair.append(aux)
+            if(not first_break[0][0]):
+                if len(array_pair) != 0:
+                    for e in reversed(array_pair):
+                        if e[2][0] == "high":
+                            if candles_array[2][1] < e[0][3] and candles_array[2][4] > e[0][3] :
+                                print("primer rompimiento -- rompió en el high con cuerpo")
+                                print(f" high roto {e[0][3]}")
+                                print("vela que rompió")
+                                print(candles_array[2])
+                                first_break.pop(0)
+                                first_break.append([True,e[0][3],e[1][4],"low"])
+                                l = len(array_pair)
+                                for k in range(l):
+                                    array_pair.pop(0)
+                                # first_break = [indica un primer rompimiento,guarda el high roto,guarda el low a romper,indica el siguiente rompimiento]
+                                break
+                        if e[2][0] == "low" :
+                            if candles_array[2][4] < e[0][4] and candles_array[2][1] > e[0][4]:
+                                print("primer rompimiento -- rompió con cuerpo en el low")
+                                print(f" low roto {e[0][4]}")
+                                print("vela que rompió")
+                                print(candles_array[2])
+                                first_break.pop(0)
+                                first_break.append([True,e[1][3],e[0][4],"high"])
+                                l = len(array_pair)
+                                for k in range(l):
+                                    array_pair.pop(0)
+                                # first_break = [indica un primer rompimiento,guarda el high a romper,guarda el low roto,indica el siguiente rompimiento]
+                                break
+            else:
+                print("buscando segundo rompimiento")
+                if first_break[0][3] == "low":
+                    if False:
+                        #en caso de romper en el alto mas alto que haya entre el primer rompimiento y la vela actual mientras esperaba romper en el low
+                        #mi nuevo primer rompimiento (first_break) será la tupla (alto_mas_alto -- sl_siguiente)
+                        #y a buscar el segundo rompimiento.
+                        pass
+                    else: 
+                        if candles_array[2][4] < first_break[0][2]:
+                            print("segundo rompimiento -- rompió con cuerpo en el low")
+                            print(f" low roto {first_break[0][2]}")
+                            print("vela que rompió")
+                            print(candles_array[2])
+                            print("enviar orden 1")
+                            candle_sh_nerby = findSwingHigh(array_ss)
+                            candle_high = candle_sh_nerby[3]
+                            candle_low = candle_sh_nerby[4]
+                            take_profit = candle_low - (candle_high - candle_low)*2
+                            request = requestOrderSendSell(candle_high,candle_low, take_profit, SYMBOL)
+                            result = mt5.order_send(request)
+                            print(f"result: {result}")
+                            pass
+                        pass
+                if first_break[0][3] == "high":
+                    if False:
+                        pass
+                    else:
+                        if candles_array[2][4] > first_break[0][1]:
+                            print("segundo rompimiento -- rompió con cuerpo en el high")
+                            print(f" high roto {first_break[0][1]}")
+                            print("vela que rompió")
+                            print(candles_array[2])
+                            print("enviar orden 2")
+                            candle_sl_nerby=findSwingLow(array_ss)
+                            candle_high = candle_sl_nerby[3]
+                            candle_low = candle_sl_nerby[4]
+                            take_profit = candle_high + (candle_high - candle_low)*2
+                            request = requestOrderSendBuy(candle_high,candle_low, take_profit, SYMBOL)
+                            result = mt5.order_send(request)
+                            print(result)
+                            pass
+                        pass
+            if( not (flag_sh_2 or flag_sl_2) ):
+                # print(candles_array)
+                candles_array.pop(0)
+                # print("ultimo candles array")
+                # print(candles_array)
+        
+
+if __name__ == "__main__":
+
     run()
     mt5.shutdown()
