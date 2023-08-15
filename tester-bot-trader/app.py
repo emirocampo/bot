@@ -1,5 +1,6 @@
 import csv
-import time
+import datetime
+
 
 def getListCandles():
     '''
@@ -14,19 +15,20 @@ def getListCandles():
     ruta_6 = "D:/Documents/python-metatrader5/tester-bot-trader/BCHUSD_M1_DOS_ROMP.csv"
     ruta_7 = "D:/Documents/python-metatrader5/tester-bot-trader/.US30Cash_M1_ROMP.csv"
     ruta_8 = "D:/Documents/python-metatrader5/tester-bot-trader/BCHUSD_M1.csv"
-    with open(ruta_8,"r") as file:
+    ruta_9 = "D:/Documents/python-metatrader5/tester-bot-trader/EURUSD_M1_SALIDA.csv"
+    with open(ruta_9,"r") as file:
         reader = csv.reader(file)
         for e in reader:
             aux = {
-                "DATE":e[0],
-                "TIME":e[1],
-                "OPEN":e[2],
-                "HIGH":e[3],
-                "LOW":e[4],
-                "CLOSE":e[5],
-                "TICKVOL":e[6],
-                "VOL":e[7],
-                "SPREAD":e[8]
+                "DATE":datetime.datetime.strptime(e[0], '%Y.%m.%d').date(),
+                "TIME":datetime.datetime.strptime(e[1], "%H:%M:%S").time(),
+                "OPEN":float(e[2]),
+                "HIGH":float(e[3]),
+                "LOW":float(e[4]),
+                "CLOSE":float(e[5]),
+                "TICKVOL":float(e[6]),
+                "VOL":float(e[7]),
+                "SPREAD":float(e[8])
             }
             array.append(aux)
         return array
@@ -167,47 +169,27 @@ def handSecuenseSlSh(array):
         return (True,sl,sh)
     return (False,0,0)
 
-# def requestOrderSendBuy(high,low, take_p):
-#     lot = 0.01
-#     # point = mt5.symbol_info(symbol).point
-#     # price = mt5.symbol_info_tick(SYMBOL).ask
-#     deviation = 20
-#     request = {
-#         "action": mt5.TRADE_ACTION_PENDING,
-#         "symbol": SYMBOL,
-#         "volume": lot,
-#         "type": mt5.ORDER_TYPE_BUY_LIMIT,
-#         "price": high,
-#         "sl": low,
-#         "tp": take_p,
-#         "deviation": deviation,
-#         "magic": 1234,
-#         "comment": "python script open",
-#         "type_time": mt5.ORDER_TIME_DAY,
-#         "type_filling": mt5.ORDER_FILLING_RETURN,
-#     }
-#     return request
+def findSwingHigh(array):
+    flag_r = False
+    for e in reversed(array):
+        if(e["SS"]=="sh"):
+            flag_r = True
+            return e
+        if(flag_r):
+            break
+        pass
+    pass
 
-# def requestOrderSendSell(high,low, take_p):
-#     lot = 0.01
-#     # point = mt5.symbol_info(symbol).point
-#     # price = mt5.symbol_info_tick(SYMBOL).ask
-#     deviation = 20
-#     request = {
-#         "action": mt5.TRADE_ACTION_PENDING,
-#         "symbol": SYMBOL,
-#         "volume": lot,
-#         "type": mt5.ORDER_TYPE_SELL_LIMIT,
-#         "price": low,
-#         "sl": high,
-#         "tp": take_p,
-#         "deviation": deviation,
-#         "magic": 1234,
-#         "comment": "python script open",
-#         "type_time": mt5.ORDER_TIME_DAY,
-#         "type_filling": mt5.ORDER_FILLING_RETURN,
-#     }
-#     return request
+def findSwingLow(array):
+    flag_r = False
+    for e in reversed(array):
+        if(e["SS"]=="sl"):
+            flag_r = True
+            return e
+        if(flag_r):
+            break
+        pass
+    pass
 
 def run():
     i_list_candles = 0
@@ -216,13 +198,9 @@ def run():
     array_pair=[]
     first_break=[{"STATE":False,"SH":"0","SL":"0","NEXT":"S_S"}]
     candles_all = getListCandles()
-    highest_high = "0"
-    lowest_low = "0"
-    sh_b = "0"
-    sl_b = "0"
     j = 0
     while j < len(candles_all):
-        if j == 21:
+        if j == 11:
             pass
         candle, i_list_candles= getCandle(candles_all,i_list_candles)
         flag_candles_array,candles_array = setCandlesArray(candle,candles_array)
@@ -265,7 +243,7 @@ def run():
                                 first_break.pop(0)
                                 #[{"STATE":False,"SH":"0","SL":"0","NEXT":"S_S"}]
                                 # first_break.append([True,e[0][4],e[1][5],"low"])
-                                first_break.append({"STATE":True,"SH":e[0]["HIGH"],"SL":e[1]["LOW"],"NEXT":"low"})
+                                first_break.append({"STATE":True,"SH":e[0]["HIGH"],"SH_T":e[0]["TIME"],"SL":e[1]["LOW"],"SL_T":e[1]["TIME"],"NEXT":"low"})
                                 # first_break = [indica un primer rompimiento,guarda el high roto,guarda el low a romper,indica el siguiente rompimiento]
                                 l = len(array_pair)
                                 for i in range(l):
@@ -279,7 +257,7 @@ def run():
                                 print(candles_array[2])
                                 first_break.pop(0)
                                 # first_break.append([True,e[1][4],e[0][5],"high"])
-                                first_break.append({"STATE":True,"SL":e[0]["LOW"],"SH":e[1]["HIGH"],"NEXT":"high"})
+                                first_break.append({"STATE":True,"SL":e[0]["LOW"],"SL_T":e[0]["TIME"],"SH":e[1]["HIGH"],"SH_T":e[1]["TIME"],"NEXT":"high"})
                                 # first_break = [indica un primer rompimiento,guarda el high a romper,guarda el low roto,indica el siguiente rompimiento]
                                 l = len(array_pair)
                                 for i in range(l):
@@ -288,10 +266,32 @@ def run():
             else:
                 print("buscando segundo rompimiento")
                 if first_break[0]["NEXT"] == "low":
-                    if False:
+                    # tomo el vector de swing's
+                    # recorro en reversa ese vector
+                    # pregunto por los elementos (e) que son 'sh'
+                    # pregunto si esos elementos (e) son mayores(en tiempo) al 'sh' del firts_break
+                    # pregunto si el high de la vela actual es mayor que ese elementos (e)
+                    breakOperation = False
+                    for e in reversed(array_ss):
+                        if e["SS"] == "sh" and e["HIGH"] > first_break[0]["SH"] and candles_array[2]["HIGH"] > e["HIGH"] and e["TIME"] > first_break[0]["SH_T"]:
+                            breakOperation = True
+                            pass
+                        pass
+                    if breakOperation:
+                        print("Ejecuantdo rutina de salida")
+                        print("actualizando los swing a romper")
                         #en caso de romper en el mas alto (highest_high) mientras esperaba romper en el low
                         #mi nuevo primer rompimiento (first_break) será la tupla (highest_high - sl-siguiente)
                         #y buscar el segundo rompimiento
+                        print("viejo firts_break")
+                        print(first_break)
+                        first_break.pop(0)
+                        candle_sh_nerby=findSwingHigh(array_ss)
+                        candle_sl_nerby=findSwingLow(array_ss)
+                        first_break=[{"STATE":True,"SH":candle_sh_nerby["HIGH"],"SL":candle_sl_nerby["LOW"],"NEXT":"low"}]
+                        print("nuevo firts_break")
+                        print(first_break)
+                        break
                         pass
                     else: 
                         if candles_array[2]["CLOSE"] < first_break[0]["SL"]:
@@ -305,7 +305,32 @@ def run():
                             pass
                         pass
                 if first_break[0]["NEXT"] == "high":
-                    if False:
+                    # tomo el vector de swing's
+                    # recorro en reversa ese vector
+                    # pregunto por los elementos (e) que son 'sl'
+                    # pregunto si esos elementos (e) son menores(tiempo) al 'sl' del firts_break
+                    # pregunto si el low de la vela actual es menor que ese elemento (e)
+                    breakOperation = False
+                    for e in reversed(array_ss):
+                        if e["SS"] == "sl" and e["LOW"] < first_break[0]["SL"] and candles_array[2]["LOW"] < e["LOW"] and e["TIME"] > first_break[0]["SL_T"]:
+                            breakOperation = True
+                            pass
+                        pass
+                    if breakOperation:
+                        print("Ejecuantdo rutina de salida")
+                        print("actualizando los swing a romper")
+                        #en caso de romper en el mas bajo (lowest_low) mientras esperaba romper en el high
+                        #mi nuevo primer rompimiento (first_break) será la tupla (lowest_low - sh-siguiente)
+                        #y buscar el segundo rompimiento
+                        print("viejo firts_break")
+                        print(first_break)
+                        first_break.pop(0)
+                        candle_sh_nerby=findSwingHigh(array_ss)
+                        candle_sl_nerby=findSwingLow(array_ss)
+                        first_break=[{"STATE":True,"SH":candle_sh_nerby["HIGH"],"SL":candle_sl_nerby["LOW"],"NEXT":"low"}]
+                        print("nuevo firts_break")
+                        print(first_break)
+                        break
                         pass
                     else:
                         if candles_array[2]["CLOSE"] > first_break[0]["SH"]:
