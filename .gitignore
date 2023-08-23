@@ -9,3 +9,16 @@ tester-bot-trader/EURUSD_M1_HIGH_3.csv
 tester-bot-trader/EURUSd_M1_LOW_3.csv
 tester-bot-trader/BCHUSD_M1.csv
 tester-bot-trader/EURUSD_M1_SALIDA.csv
+
+tester-bot-trader-simplex/EURUSD1.csv
+tester-bot-trader-simplex/EURUSD_M1_SALIDA.csv
+tester-bot-trader-simplex/prueba-datos.csv
+tester-bot-trader-simplex/EURUSD1_mod.csv
+tester-bot-trader-simplex/.US30Cash_M1_ROMP.csv
+tester-bot-trader-simplex/BCHUSD_M1_DOS_ROMP.csv
+tester-bot-trader-simplex/EURUSD_M1_HIGH_3.csv
+tester-bot-trader-simplex/EURUSd_M1_LOW_3.csv
+tester-bot-trader-simplex/BCHUSD_M1.csv
+tester-bot-trader-simplex/EURUSD_M1_SALIDA.csv
+
+bot-trader-simplex/credentials.py
